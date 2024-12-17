@@ -148,8 +148,12 @@ void Phonon::dump()
 	//Output electron-phonon matrix elements:
 	if(mpiWorld->isHead() && saveHsub)
 	{	const int& nBands = e.eInfo.nBands;
+		std::cout << "n. bands: " << nBands << std::endl;
+		std::cout << "n. modes: " << modes.size() << std::endl;
+		std::cout << "n. k pts.: " << prodSup << std::endl;
 		for(int s=0; s<nSpins; s++)
 		{	string spinSuffix = (nSpins==1 ? "" : (s==0 ? "Up" : "Dn"));
+			std::cout << "s= " << s << std::endl;
 			string fname = e.dump.getFilename("phononHsub" + spinSuffix);
 			logPrintf("Dumping '%s' ... ", fname.c_str()); logFlush();
 			FILE* fp = fopen(fname.c_str(), "w");
@@ -161,6 +165,27 @@ void Phonon::dump()
 						HePh.write(fp);
 					}
 			fclose(fp);
+
+			// second file
+
+			//FILE* fp2 = fopen("ElPhonMatrEl.dat", "w");
+			std::ofstream outputFile("ElPhonMatrEl.dat");
+			outputFile << "iMode" << " " << "ik1" << " " << "ib1" << " " << "ik2" << " " << "ib2" << " " << "real(cc)" << " " << "imag(cc)" << std::endl;
+			for (size_t iMode=0; iMode<modes.size(); iMode++) {
+				for (int ik1=0; ik1<prodSup; ik1++) {
+					for (int ib1=0; ib1<nBands; ib1++) {
+						for (int ik2=0; ik2<prodSup; ik2++) {
+							for (int ib2=0; ib2<nBands; ib2++) {
+								complex cc = invsqrtM[modes[iMode].sp] * //incorporate mass factor in eigen-displacement
+									dHsub[iMode][s](ik1*nBands+ib1,ik2*nBands+ib2);
+								outputFile << iMode << " " << ik1 << " " << ib1 << " " << ik2 << " " << ib2 << " " << real(cc) << " " << imag(cc) << std::endl;
+							}
+						}
+					}
+				}
+			}
+			//fclose(fp2);
+
 			logPrintf("done.\n"); logFlush();
 		}
 	}
